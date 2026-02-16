@@ -1,0 +1,248 @@
+﻿:root {
+  --bg-0: #f3f6ff;
+  --bg-1: #deebff;
+  --text: #14213d;
+  --muted: #4a5568;
+  --line: #c6d4ef;
+  --panel: #ffffffd9;
+  --accent: #d97706;
+  --accent-2: #0f766e;
+  --danger: #b91c1c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at 10% 10%, var(--bg-1), transparent 35%),
+    linear-gradient(145deg, #fdfcf9 0%, var(--bg-0) 45%, #f2f8f7 100%);
+  min-height: 100vh;
+}
+
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(to right, #ffffff85 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff85 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
+.shell {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 18px 64px;
+  display: grid;
+  gap: 18px;
+}
+
+.hero h1 {
+  margin: 8px 0;
+  font-size: clamp(1.8rem, 2.8vw, 2.9rem);
+  letter-spacing: 0.02em;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent-2);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+}
+
+.subtitle {
+  max-width: 780px;
+  color: var(--muted);
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 18px;
+  background: var(--panel);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 10px 30px #7c8ead22;
+}
+
+.mode-toggle {
+  display: inline-flex;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  padding: 4px;
+  background: #ffffffb3;
+}
+
+.mode-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 8px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.mode-btn.active {
+  background: #0f766e;
+  color: #fff;
+}
+
+.upload-form {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.field-label {
+  font-weight: 600;
+}
+
+input[type="file"],
+input[type="search"] {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+}
+
+button[type="submit"] {
+  width: fit-content;
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(100deg, var(--accent), #ef4444);
+  cursor: pointer;
+}
+
+.status {
+  margin: 12px 0 0;
+  color: var(--muted);
+}
+
+.status.error {
+  color: var(--danger);
+}
+
+.stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-width: 150px;
+  background: #fff;
+}
+
+.stat-label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.chips {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chips span {
+  background: #e7edf8;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
+.hint {
+  color: var(--muted);
+  margin-top: 0;
+}
+
+.diagram-canvas {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.diagram-canvas svg {
+  display: block;
+}
+
+.table-head {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.table-wrap {
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 920px;
+  background: #fff;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  padding: 10px;
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.84rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+details {
+  max-width: 400px;
+}
+
+pre {
+  margin: 8px 0 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  overflow-x: auto;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 720px) {
+  .shell {
+    padding: 22px 12px 50px;
+  }
+
+  .table-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stats {
+    flex-direction: column;
+  }
+}

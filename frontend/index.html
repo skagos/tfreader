@@ -1,0 +1,80 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terraform Reader</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">IaC Resource Mapper</p>
+        <h1>Terraform File and Folder Visualizer</h1>
+        <p class="subtitle">
+          Upload a single <code>.tf</code> file or a zipped Terraform folder. The app extracts resources,
+          builds a relationship diagram, and lists full details.
+        </p>
+      </section>
+
+      <section class="panel input-panel">
+        <div class="mode-toggle" role="tablist" aria-label="Input mode">
+          <button id="mode-file" class="mode-btn active" data-mode="file" type="button">Single TF File</button>
+          <button id="mode-folder" class="mode-btn" data-mode="folder" type="button">Folder ZIP</button>
+        </div>
+
+        <form id="analyze-form" class="upload-form">
+          <label id="file-label" class="field-label" for="iac-input">Upload .tf file</label>
+          <input id="iac-input" name="iac" type="file" accept=".tf,.zip" required />
+          <button id="analyze-btn" type="submit">Analyze Resources</button>
+        </form>
+
+        <p id="status" class="status">Waiting for upload.</p>
+      </section>
+
+      <section class="panel summary-panel" id="summary-panel" hidden>
+        <h2>Summary</h2>
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-label">Resource Count</span>
+            <strong id="resource-count">0</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Resource Types</span>
+            <strong id="type-count">0</strong>
+          </div>
+        </div>
+        <div id="chips" class="chips"></div>
+      </section>
+
+      <section class="panel diagram-panel" id="diagram-panel" hidden>
+        <h2>Resource Diagram</h2>
+        <p class="hint">Type nodes connect to the resources discovered in your Terraform input.</p>
+        <div id="diagram" class="diagram-canvas"></div>
+      </section>
+
+      <section class="panel table-panel" id="table-panel" hidden>
+        <div class="table-head">
+          <h2>Resource Details</h2>
+          <input id="table-filter" type="search" placeholder="Filter by type, name, or file" />
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Name</th>
+                <th>File</th>
+                <th>Config</th>
+              </tr>
+            </thead>
+            <tbody id="resource-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
