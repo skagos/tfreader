@@ -1,0 +1,8 @@
+Following resources are marked to be skipped:
+
+- /subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Storage/storageAccounts/cloudcopilottoragedev/blobServices/default
+- /subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Storage/storageAccounts/cloudcopilottoragedev/fileServices/default
+- /subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Storage/storageAccounts/cloudcopilottoragedev/tableServices/default
+- /subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Web/sites/cloud-copilot-api-backend/basicPublishingCredentialsPolicies/ftp
+- /subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Web/sites/cloud-copilot-api-backend/basicPublishingCredentialsPolicies/scm
+- /subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Web/sites/cloud-copilot-api-backend/config/web

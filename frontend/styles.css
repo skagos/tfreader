@@ -99,16 +99,52 @@ body {
   gap: 10px;
 }
 
+.export-form {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.field-row {
+  display: grid;
+  gap: 6px;
+}
+
 .field-label {
   font-weight: 600;
 }
 
 input[type="file"],
-input[type="search"] {
+input[type="search"],
+input[type="text"],
+select {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 10px;
   background: #fff;
+}
+
+select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #64748b 50%),
+    linear-gradient(135deg, #64748b 50%, transparent 50%);
+  background-position: calc(100% - 18px) 18px, calc(100% - 12px) 18px;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+.check-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.check-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 button[type="submit"] {
@@ -230,6 +266,23 @@ pre {
   border: 1px solid var(--line);
   overflow-x: auto;
   font-size: 0.78rem;
+}
+
+.export-log {
+  margin-top: 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 12px;
+  border: 1px solid #0b1220;
+  padding: 12px;
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+}
+
+.export-log.error {
+  border-color: #7f1d1d;
+  color: #fee2e2;
+  background: #450a0a;
 }
 
 @media (max-width: 720px) {

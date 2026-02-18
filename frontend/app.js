@@ -5,9 +5,11 @@
 
 const modeButtons = document.querySelectorAll(".mode-btn");
 const form = document.getElementById("analyze-form");
+const exportForm = document.getElementById("export-form");
 const fileInput = document.getElementById("iac-input");
 const fileLabel = document.getElementById("file-label");
 const statusEl = document.getElementById("status");
+const exportLogEl = document.getElementById("export-log");
 const summaryPanel = document.getElementById("summary-panel");
 const diagramPanel = document.getElementById("diagram-panel");
 const tablePanel = document.getElementById("table-panel");
@@ -17,12 +19,23 @@ const chipsEl = document.getElementById("chips");
 const diagramEl = document.getElementById("diagram");
 const tableBody = document.getElementById("resource-table-body");
 const filterInput = document.getElementById("table-filter");
+const exporterInput = document.getElementById("exporter");
+const subscriptionInput = document.getElementById("subscription-id");
+const scopeTypeSelect = document.getElementById("scope-type");
+const scopeValueInput = document.getElementById("scope-value");
+const outputDirInput = document.getElementById("output-dir");
+const exportFolderSelect = document.getElementById("export-folder-select");
+const appendCheckbox = document.getElementById("append");
+const nonInteractiveCheckbox = document.getElementById("non-interactive");
+const hclOnlyCheckbox = document.getElementById("hcl-only");
+const deviceCodeCheckbox = document.getElementById("device-code");
 
 for (const btn of modeButtons) {
   btn.addEventListener("click", () => setMode(btn.dataset.mode));
 }
 
 form.addEventListener("submit", onSubmit);
+exportForm.addEventListener("submit", onExport);
 filterInput.addEventListener("input", () => renderTable(state.resources, filterInput.value));
 
 function setMode(mode) {
@@ -93,6 +106,67 @@ async function onSubmit(event) {
     diagramPanel.hidden = true;
     tablePanel.hidden = true;
     setStatus(`Error: ${error.message}`, true);
+  }
+}
+
+async function onExport(event) {
+  event.preventDefault();
+
+  const scopeValue = scopeValueInput.value.trim();
+  if (!scopeValue) {
+    setExportLog("Enter a scope value before exporting.", true);
+    return;
+  }
+
+  const outputDir = resolveOutputDirName();
+
+  const payload = {
+    exporter: exporterInput.value.trim() || null,
+    subscription_id: subscriptionInput.value.trim() || null,
+    scope_type: scopeTypeSelect.value,
+    scope: scopeValue,
+    output_dir: outputDir,
+    append: appendCheckbox.checked,
+    non_interactive: nonInteractiveCheckbox.checked,
+    hcl_only: hclOnlyCheckbox.checked,
+    use_device_code: deviceCodeCheckbox.checked,
+  };
+
+  setExportLog("Running Azure export. This can take a few minutes...");
+
+  try {
+    const response = await fetch("/export/azure", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      const detail = data?.detail;
+      const message =
+        typeof detail === "string"
+          ? detail
+          : detail?.message || "Export request failed.";
+      const logPayload = typeof detail === "object" ? detail : { message: detail };
+      setExportLog(renderCommandLog(logPayload), true);
+      throw new Error(message);
+    }
+
+    setExportLog(renderCommandLog(data));
+    await loadExportFolders(outputDir);
+
+    const analyze = data.analyze || {};
+    state.resources = analyze.resources || [];
+    renderSummary(analyze);
+    renderDiagram(analyze.resources || []);
+    renderTable(analyze.resources || [], filterInput.value);
+
+    summaryPanel.hidden = false;
+    diagramPanel.hidden = false;
+    tablePanel.hidden = false;
+  } catch (error) {
+    setExportLog(`Error: ${error.message}`, true);
   }
 }
 
@@ -278,4 +352,91 @@ function setStatus(message, isError = false) {
   statusEl.classList.toggle("error", isError);
 }
 
+function setExportLog(message, isError = false) {
+  exportLogEl.hidden = false;
+  exportLogEl.textContent = message;
+  exportLogEl.classList.toggle("error", isError);
+}
+
+function resolveOutputDirName() {
+  const typed = outputDirInput.value.trim();
+  if (typed) {
+    return typed;
+  }
+
+  return exportFolderSelect.value || "azure-terraform-export";
+}
+
+async function loadExportFolders(selectValue = "") {
+  try {
+    const response = await fetch("/export/azure/folders");
+    const folders = response.ok ? await response.json() : [];
+    exportFolderSelect.innerHTML = "";
+
+    if (!folders.length) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "No existing folders";
+      exportFolderSelect.appendChild(option);
+      return;
+    }
+
+    for (const folder of folders) {
+      const option = document.createElement("option");
+      option.value = folder;
+      option.textContent = folder;
+      exportFolderSelect.appendChild(option);
+    }
+
+    if (selectValue) {
+      exportFolderSelect.value = selectValue;
+    }
+  } catch (error) {
+    exportFolderSelect.innerHTML = "";
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Failed to load folders";
+    exportFolderSelect.appendChild(option);
+  }
+}
+
+function renderCommandLog(data) {
+  const lines = [];
+  const steps = Array.isArray(data.steps) ? data.steps : [];
+  const message = data.message || data.detail || "";
+
+  if (message) {
+    lines.push(`Error: ${message}`);
+    lines.push("");
+  }
+
+  if (steps.length) {
+    for (const step of steps) {
+      const cmd = Array.isArray(step.command) ? step.command.join(" ") : "";
+      lines.push(`$ ${cmd}`);
+      lines.push(`exit ${step.exit_code}`);
+      if (step.stdout) {
+        lines.push(step.stdout);
+      }
+      if (step.stderr) {
+        lines.push(step.stderr);
+      }
+      lines.push("");
+    }
+  } else if (data.command) {
+    lines.push(`$ ${data.command.join(" ")}`);
+  }
+
+  if (data.stdout) {
+    lines.push(data.stdout);
+  }
+  if (data.stderr) {
+    lines.push(data.stderr);
+  }
+
+  lines.push(`Output directory: ${data.output_dir || ""}`);
+  return lines.join("\n");
+}
+
 setMode("file");
+loadExportFolders();

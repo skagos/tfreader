@@ -1,0 +1,13 @@
+services:
+  tfreader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tfreader
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./exports:/app/exports
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

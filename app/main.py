@@ -1,12 +1,16 @@
 ﻿from __future__ import annotations
 
 from pathlib import Path
+import shutil
+import subprocess
+import time
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.schemas import AnalyzeResponse, ResourceRecord
+from app.schemas import AnalyzeResponse, AzureExportRequest, AzureExportResponse, ResourceRecord
 from app.terraform_parser import parse_tf_content, parse_tf_directory, parse_tf_from_zip
 
 app = FastAPI(
@@ -20,6 +24,7 @@ app = FastAPI(
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
+EXPORTS_DIR = BASE_DIR / "exports"
 
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
@@ -33,6 +38,123 @@ def _build_response(resources: list[ResourceRecord]) -> AnalyzeResponse:
     )
 
 
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _run_command(
+    command: list[str],
+    cwd: Path | None = None,
+    timeout_sec: int | None = None,
+) -> tuple[int, str, str]:
+    try:
+        result = subprocess.run(
+            command,
+            cwd=str(cwd) if cwd else None,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout_sec,
+            stdin=subprocess.DEVNULL,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Executable not found: {command[0]}. Ensure it is on PATH.",
+        ) from exc
+    except subprocess.TimeoutExpired as exc:
+        timeout_stdout = (exc.stdout or "").strip() if isinstance(exc.stdout, str) else ""
+        timeout_stderr = (exc.stderr or "").strip() if isinstance(exc.stderr, str) else ""
+        timeout_msg = (
+            f"Command timed out after {timeout_sec}s: {' '.join(command)}"
+            if timeout_sec is not None
+            else f"Command timed out: {' '.join(command)}"
+        )
+        if timeout_stderr:
+            timeout_msg = f"{timeout_msg}\n{timeout_stderr}"
+        return 124, timeout_stdout, timeout_msg
+    stdout = (result.stdout or "").strip()
+    stderr = (result.stderr or "").strip()
+    return result.returncode, stdout, stderr
+
+
+def _run_and_record(
+    command: list[str],
+    steps: list[dict],
+    cwd: Path | None = None,
+    timeout_sec: int | None = None,
+) -> tuple[int, str, str]:
+    started_at = _utc_now_iso()
+    start = time.perf_counter()
+    rendered_cwd = str(cwd) if cwd else str(BASE_DIR)
+    print(f"[CMD START {started_at}] cwd={rendered_cwd} cmd={' '.join(command)}")
+    code, stdout, stderr = _run_command(command, cwd=cwd, timeout_sec=timeout_sec)
+    finished_at = _utc_now_iso()
+    duration_sec = round(time.perf_counter() - start, 3)
+    print(f"[CMD END   {finished_at}] exit={code} duration={duration_sec}s cmd={' '.join(command)}")
+
+    steps.append(
+        {
+            "command": command,
+            "cwd": rendered_cwd,
+            "started_at": started_at,
+            "finished_at": finished_at,
+            "duration_sec": duration_sec,
+            "exit_code": code,
+            "stdout": stdout,
+            "stderr": stderr,
+        }
+    )
+    return code, stdout, stderr
+
+
+def _resolve_executable(executable: str) -> str:
+    resolved = shutil.which(executable)
+    if resolved is None:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Required executable not found on PATH: {executable}",
+        )
+    return resolved
+
+
+def _resolve_exporter(preferred: str | None) -> str:
+    if preferred:
+        return _resolve_executable(preferred)
+
+    for candidate in ["aztfexport", "aztfexporter"]:
+        resolved = shutil.which(candidate)
+        if resolved:
+            return resolved
+
+    raise HTTPException(
+        status_code=500,
+        detail="Exporter not found on PATH. Install aztfexport or aztfexporter.",
+    )
+
+
+def _resolve_output_dir(raw_dir: str) -> Path:
+    EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    candidate = Path(raw_dir)
+    if candidate.is_absolute():
+        resolved = candidate.resolve()
+    else:
+        resolved = (EXPORTS_DIR / candidate).resolve()
+
+    exports_root = EXPORTS_DIR.resolve()
+    try:
+        resolved.relative_to(exports_root)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Output directory must be inside the exports folder.",
+        ) from exc
+
+    return resolved
+
+
 @app.get("/")
 def index() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "index.html")
@@ -41,6 +163,12 @@ def index() -> FileResponse:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/export/azure/folders")
+def list_export_folders() -> list[str]:
+    EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    return sorted([p.name for p in EXPORTS_DIR.iterdir() if p.is_dir()])
 
 
 @app.post("/analyze/file", response_model=AnalyzeResponse)
@@ -99,3 +227,122 @@ def analyze_local_path(path: str = Form(...)) -> AnalyzeResponse:
         raise HTTPException(status_code=400, detail=f"Failed to parse local path: {exc}") from exc
 
     return _build_response(resources)
+
+
+@app.post("/export/azure", response_model=AzureExportResponse)
+def export_azure(request: AzureExportRequest) -> AzureExportResponse:
+    print(
+        f"[EXPORT] Request at {_utc_now_iso()} "
+        f"scope_type={request.scope_type} scope={request.scope} "
+        f"output_dir={request.output_dir} append={request.append} "
+        f"hcl_only={request.hcl_only} non_interactive={request.non_interactive}"
+    )
+    az = _resolve_executable("az")
+    exporter = _resolve_exporter(request.exporter)
+
+    steps: list[dict] = []
+    output_dir = _resolve_output_dir(request.output_dir)
+    print(f"[EXPORT] Resolved output directory: {output_dir}")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if not request.append:
+        has_files = any(output_dir.iterdir())
+        if has_files:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Output directory is not empty. Enable append or choose an empty directory."
+                ),
+            )
+
+    login_performed = False
+    login_stdout = ""
+    login_stderr = ""
+    login_code, _, _ = _run_and_record([az, "account", "show", "-o", "json"], steps, timeout_sec=60)
+    if login_code != 0:
+        print("[EXPORT] az account show failed; running az login.")
+        login_performed = True
+        login_cmd = [az, "login"]
+        if request.use_device_code:
+            login_cmd.append("--use-device-code")
+        login_code, login_stdout, login_stderr = _run_and_record(login_cmd, steps, timeout_sec=300)
+        if login_code != 0:
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "message": "az login failed.",
+                    "stdout": login_stdout,
+                    "stderr": login_stderr,
+                    "steps": steps,
+                },
+            )
+
+    if request.subscription_id:
+        print(f"[EXPORT] Setting subscription to: {request.subscription_id}")
+        set_code, set_out, set_err = _run_and_record(
+            [az, "account", "set", "--subscription", request.subscription_id],
+            steps,
+            timeout_sec=60,
+        )
+        if set_code != 0:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "Failed to set subscription.",
+                    "stdout": set_out,
+                    "stderr": set_err,
+                    "steps": steps,
+                },
+            )
+
+    cmd = [
+        exporter,
+        request.scope_type,
+        "--output-dir",
+        str(output_dir),
+    ]
+    if not request.non_interactive:
+        print("[EXPORT] non_interactive=False requested, but API export forces non-interactive mode to avoid hanging prompts.")
+    cmd.extend(["--non-interactive", "--plain-ui"])
+    if request.hcl_only:
+        cmd.append("--hcl-only")
+    if request.append:
+        cmd.append("--append")
+    cmd.extend(["--log-path", str(output_dir / "aztfexport.log"), "--log-level", "INFO"])
+    cmd.append(request.scope)
+
+    print(f"[EXPORT] Starting exporter command at {_utc_now_iso()}: {' '.join(cmd)}")
+    export_code, export_stdout, export_stderr = _run_and_record(
+        cmd,
+        steps,
+        cwd=BASE_DIR,
+        timeout_sec=1800,
+    )
+    if export_code != 0:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "aztfexport failed.",
+                "stdout": export_stdout,
+                "stderr": export_stderr,
+                "steps": steps,
+            },
+        )
+
+    print(f"[EXPORT] Export command finished. Parsing output folder: {output_dir}")
+    resources = parse_tf_directory(output_dir)
+    print(f"[EXPORT] Parsing completed. Parsed resource count: {len(resources)}")
+    analyze = _build_response(resources)
+
+    return AzureExportResponse(
+        steps=steps,
+        output_dir=str(output_dir),
+        command=cmd,
+        login_performed=login_performed,
+        login_stdout=login_stdout,
+        login_stderr=login_stderr,
+        export_stdout=export_stdout,
+        export_stderr=export_stderr,
+        analyze=analyze,
+    )

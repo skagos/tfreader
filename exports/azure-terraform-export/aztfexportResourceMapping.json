@@ -1,0 +1,37 @@
+{
+	"/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev": {
+		"resource_id": "/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev",
+		"resource_type": "azurerm_resource_group",
+		"resource_name": "res-0"
+	},
+	"/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.KeyVault/vaults/cloudcopilotcf-kv": {
+		"resource_id": "/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.KeyVault/vaults/cloudcopilotcf-kv",
+		"resource_type": "azurerm_key_vault",
+		"resource_name": "res-1"
+	},
+	"/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Storage/storageAccounts/cloudcopilottoragedev": {
+		"resource_id": "/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Storage/storageAccounts/cloudcopilottoragedev",
+		"resource_type": "azurerm_storage_account",
+		"resource_name": "res-2"
+	},
+	"/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Storage/storageAccounts/cloudcopilottoragedev/queueServices/default": {
+		"resource_id": "/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Storage/storageAccounts/cloudcopilottoragedev",
+		"resource_type": "azurerm_storage_account_queue_properties",
+		"resource_name": "res-5"
+	},
+	"/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Web/serverFarms/ASP-rgcloudcopilotdev-83cc": {
+		"resource_id": "/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Web/serverFarms/ASP-rgcloudcopilotdev-83cc",
+		"resource_type": "azurerm_service_plan",
+		"resource_name": "res-7"
+	},
+	"/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Web/sites/cloud-copilot-api-backend": {
+		"resource_id": "/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Web/sites/cloud-copilot-api-backend",
+		"resource_type": "azurerm_linux_web_app",
+		"resource_name": "res-8"
+	},
+	"/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Web/sites/cloud-copilot-api-backend/hostNameBindings/cloud-copilot-api-backend-cmd9hhbsa3g5e2aq.francecentral-01.azurewebsites.net": {
+		"resource_id": "/subscriptions/376a4b47-119b-40cd-88b6-c7531fa11f5c/resourceGroups/rg-cloud-copilot-dev/providers/Microsoft.Web/sites/cloud-copilot-api-backend/hostNameBindings/cloud-copilot-api-backend-cmd9hhbsa3g5e2aq.francecentral-01.azurewebsites.net",
+		"resource_type": "azurerm_app_service_custom_hostname_binding",
+		"resource_name": "res-12"
+	}
+}

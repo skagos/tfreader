@@ -14,6 +14,27 @@ uvicorn app.main:app --reload
 Web UI: `http://127.0.0.1:8000/`
 Swagger UI: `http://127.0.0.1:8000/docs`
 
+## Run With Docker
+
+Build and start:
+
+```bash
+docker compose up --build
+```
+
+The app will be available at `http://127.0.0.1:8000/`.
+
+If you will use Azure export endpoints, run Azure login inside the container:
+
+```bash
+docker compose exec tfreader az login --use-device-code
+```
+
+Notes:
+- The local `./exports` folder is mounted to `/app/exports` in the container.
+- `Azure CLI` and `aztfexport` are included in the image.
+- You do not need to install `az` or `aztfexport` on the host machine when using Docker.
+
 ## Frontend
 
 The frontend supports both inputs:

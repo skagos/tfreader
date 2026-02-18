@@ -33,6 +33,48 @@
         <p id="status" class="status">Waiting for upload.</p>
       </section>
 
+      <section class="panel export-panel">
+        <h2>Azure Export</h2>
+        <p class="hint">Run az login (if needed) and export Azure resources to Terraform using aztfexport.</p>
+        <form id="export-form" class="export-form">
+          <div class="field-row">
+            <label class="field-label" for="export-folder-select">Existing export folder</label>
+            <select id="export-folder-select"></select>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="exporter">Exporter (optional)</label>
+            <input id="exporter" type="text" placeholder="aztfexport or aztfexporter" />
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="subscription-id">Subscription (optional)</label>
+            <input id="subscription-id" type="text" placeholder="Subscription ID or name" />
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="scope-type">Scope type</label>
+            <select id="scope-type">
+              <option value="resource-group" selected>Resource Group</option>
+              <option value="resource">Resource ID</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="scope-value">Scope value</label>
+            <input id="scope-value" type="text" placeholder="my-resource-group or /subscriptions/.../resourceGroups/..." />
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="output-dir">New export folder (inside exports/)</label>
+            <input id="output-dir" type="text" value="azure-terraform-export" />
+          </div>
+          <div class="check-row">
+            <label><input id="append" type="checkbox" /> Append to existing folder</label>
+            <label><input id="non-interactive" type="checkbox" checked /> Non-interactive</label>
+            <label><input id="hcl-only" type="checkbox" checked /> HCL only</label>
+            <label><input id="device-code" type="checkbox" /> Use device code login</label>
+          </div>
+          <button id="export-btn" type="submit">Run Azure Export</button>
+        </form>
+        <pre id="export-log" class="export-log">Waiting to run export.</pre>
+      </section>
+
       <section class="panel summary-panel" id="summary-panel" hidden>
         <h2>Summary</h2>
         <div class="stats">

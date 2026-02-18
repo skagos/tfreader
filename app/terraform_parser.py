@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import io
+import os
 from pathlib import Path
 from typing import Any
 from zipfile import ZipFile
@@ -43,9 +44,20 @@ def parse_tf_file(path: Path) -> list[ResourceRecord]:
 
 
 def parse_tf_directory(directory: Path) -> list[ResourceRecord]:
+    print(f"[PARSER] Start parsing Terraform files in: {directory}")
     records: list[ResourceRecord] = []
-    for tf_file in directory.rglob("*.tf"):
-        records.extend(parse_tf_file(tf_file))
+    skipped_dirs = {".terraform", ".git", ".venv", "venv", "node_modules"}
+
+    for root, dirs, files in os.walk(directory):
+        dirs[:] = [d for d in dirs if d not in skipped_dirs]
+        for file_name in files:
+            if not file_name.endswith(".tf"):
+                continue
+            tf_file = Path(root) / file_name
+            records.extend(parse_tf_file(tf_file))
+            print(f"[PARSER] Parsed {tf_file}, total records: {len(records)}")
+
+    print(f"[PARSER] Finished parsing. Total resources: {len(records)}")
     return records
 
 

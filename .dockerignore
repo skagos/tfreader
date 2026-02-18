@@ -1,0 +1,10 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+exports
+azure-terraform-export
