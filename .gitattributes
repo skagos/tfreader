@@ -1,0 +1,1 @@
+azure-terraform-export/.terraform/providers/**/*.exe filter=lfs diff=lfs merge=lfs -text
