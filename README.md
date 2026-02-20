@@ -57,6 +57,24 @@ It renders:
 - `POST /analyze/local-path`
   - multipart fields:
     - `path`: local file/folder path on the API server
+- `POST /security/file`
+  - multipart fields:
+    - `tf_file`: a single `.tf` file
+- `POST /security/folder`
+  - multipart fields:
+    - `tf_folder_zip`: a `.zip` containing one or more `.tf` files
+- `POST /security/local-path`
+  - multipart fields:
+    - `path`: local file/folder path on the API server
+- `POST /advise/file`
+  - multipart fields:
+    - `tf_file`: a single `.tf` file
+- `POST /advise/folder`
+  - multipart fields:
+    - `tf_folder_zip`: a `.zip` containing one or more `.tf` files
+- `POST /advise/local-path`
+  - multipart fields:
+    - `path`: local file/folder path on the API server
 
 ## Example `curl`
 
@@ -74,3 +92,15 @@ curl -X POST "http://127.0.0.1:8000/analyze/folder" \
 
 - This phase only parses Terraform and returns detected resource types and resource entries.
 - No database is used by the API.
+- Security analysis phase:
+  - runs as an additive layer after Terraform parsing
+  - endpoints return both parsed resources and structured findings with severities (`low`, `medium`, `high`, `critical`)
+  - findings are produced by scanner libraries: `checkov`, `tfsec`, and `terrascan`
+  - each finding includes `source_library` so the UI can show which scanner detected it
+  - includes a severity-weighted security score (`0-100`)
+  - findings include resource-level keys (for attaching to visualization nodes) and optional compliance tags (CIS/NIST/ISO mapping hooks)
+  - scanner binaries must be installed and available on PATH in the API runtime environment
+- Azure export can include security analysis by setting `include_security=true` in `POST /export/azure`.
+- Advisor phase:
+  - default mode is rules-based (`ADVISOR_MODE=rules`)
+  - optional future AI path is available via `ADVISOR_MODE=llm` (currently stubbed until provider integration is added)

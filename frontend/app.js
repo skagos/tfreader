@@ -1,6 +1,7 @@
-﻿const state = {
+const state = {
   mode: "file",
   resources: [],
+  security: null,
 };
 
 const modeButtons = document.querySelectorAll(".mode-btn");
@@ -12,13 +13,18 @@ const statusEl = document.getElementById("status");
 const exportLogEl = document.getElementById("export-log");
 const summaryPanel = document.getElementById("summary-panel");
 const diagramPanel = document.getElementById("diagram-panel");
+const securityPanel = document.getElementById("security-panel");
 const tablePanel = document.getElementById("table-panel");
 const resourceCountEl = document.getElementById("resource-count");
 const typeCountEl = document.getElementById("type-count");
 const chipsEl = document.getElementById("chips");
 const diagramEl = document.getElementById("diagram");
+const securityScoreEl = document.getElementById("security-score");
+const securitySummaryEl = document.getElementById("security-summary");
+const securityFindingsBody = document.getElementById("security-findings-body");
 const tableBody = document.getElementById("resource-table-body");
 const filterInput = document.getElementById("table-filter");
+const analyzeSecurityCheckbox = document.getElementById("analyze-security");
 const exporterInput = document.getElementById("exporter");
 const subscriptionInput = document.getElementById("subscription-id");
 const scopeTypeSelect = document.getElementById("scope-type");
@@ -29,6 +35,7 @@ const appendCheckbox = document.getElementById("append");
 const nonInteractiveCheckbox = document.getElementById("non-interactive");
 const hclOnlyCheckbox = document.getElementById("hcl-only");
 const deviceCodeCheckbox = document.getElementById("device-code");
+const exportSecurityCheckbox = document.getElementById("export-security");
 
 for (const btn of modeButtons) {
   btn.addEventListener("click", () => setMode(btn.dataset.mode));
@@ -65,13 +72,14 @@ async function onSubmit(event) {
     return;
   }
 
+  const includeSecurity = analyzeSecurityCheckbox.checked;
   const formData = new FormData();
-  let endpoint = "/analyze/file";
+  let endpoint = includeSecurity ? "/security/file" : "/analyze/file";
 
   if (state.mode === "file") {
     formData.append("tf_file", selected);
   } else {
-    endpoint = "/analyze/folder";
+    endpoint = includeSecurity ? "/security/folder" : "/analyze/folder";
     formData.append("tf_folder_zip", selected);
   }
 
@@ -89,21 +97,28 @@ async function onSubmit(event) {
       throw new Error(message);
     }
 
-    state.resources = payload.resources || [];
-    renderSummary(payload);
-    renderDiagram(payload.resources || []);
-    renderTable(payload.resources || [], filterInput.value);
+    const { analyze, security } = normalizeAnalyzePayload(payload);
+
+    state.resources = analyze.resources || [];
+    state.security = security;
+    renderSummary(analyze);
+    renderDiagram(analyze.resources || []);
+    renderSecurity(security);
+    renderTable(analyze.resources || [], filterInput.value);
 
     summaryPanel.hidden = false;
     diagramPanel.hidden = false;
     tablePanel.hidden = false;
 
-    setStatus(
-      `Done. Found ${payload.resource_count} resources across ${payload.resource_types.length} types.`
-    );
+    const resourceCount = analyze.resource_count || 0;
+    const typeCount = analyze.resource_types?.length || 0;
+    const findingsCount = security?.findings_count || 0;
+    const securityText = security ? ` Security findings: ${findingsCount}.` : "";
+    setStatus(`Done. Found ${resourceCount} resources across ${typeCount} types.${securityText}`);
   } catch (error) {
     summaryPanel.hidden = true;
     diagramPanel.hidden = true;
+    securityPanel.hidden = true;
     tablePanel.hidden = true;
     setStatus(`Error: ${error.message}`, true);
   }
@@ -130,6 +145,7 @@ async function onExport(event) {
     non_interactive: nonInteractiveCheckbox.checked,
     hcl_only: hclOnlyCheckbox.checked,
     use_device_code: deviceCodeCheckbox.checked,
+    include_security: exportSecurityCheckbox.checked,
   };
 
   setExportLog("Running Azure export. This can take a few minutes...");
@@ -157,17 +173,27 @@ async function onExport(event) {
     await loadExportFolders(outputDir);
 
     const analyze = data.analyze || {};
+    const security = data.security || null;
     state.resources = analyze.resources || [];
+    state.security = security;
     renderSummary(analyze);
     renderDiagram(analyze.resources || []);
+    renderSecurity(security);
     renderTable(analyze.resources || [], filterInput.value);
 
     summaryPanel.hidden = false;
     diagramPanel.hidden = false;
     tablePanel.hidden = false;
   } catch (error) {
+    securityPanel.hidden = true;
     setExportLog(`Error: ${error.message}`, true);
   }
+}
+
+function normalizeAnalyzePayload(payload) {
+  const analyze = payload?.analyze || payload || {};
+  const security = payload?.security || null;
+  return { analyze, security };
 }
 
 function renderSummary(payload) {
@@ -297,6 +323,57 @@ function renderDiagram(resources) {
   diagramEl.appendChild(svg);
 }
 
+function renderSecurity(security) {
+  securityFindingsBody.innerHTML = "";
+
+  if (!security) {
+    securityPanel.hidden = true;
+    return;
+  }
+
+  securityPanel.hidden = false;
+  const score = Number.isFinite(security.score?.score) ? security.score.score : 100;
+  securityScoreEl.textContent = `Score: ${score}`;
+  securityScoreEl.className = `security-score score-${scoreBand(score)}`;
+  securitySummaryEl.textContent = security.summary || "No security summary available.";
+
+  const findings = Array.isArray(security.findings) ? security.findings : [];
+  if (!findings.length) {
+    const row = document.createElement("tr");
+    const noData = document.createElement("td");
+    noData.colSpan = 6;
+    noData.textContent = "No security findings.";
+    row.appendChild(noData);
+    securityFindingsBody.appendChild(row);
+    return;
+  }
+
+  for (const finding of findings) {
+    const row = document.createElement("tr");
+
+    const severityTd = document.createElement("td");
+    const badge = document.createElement("span");
+    badge.className = `sev-badge sev-${finding.severity || "low"}`;
+    badge.textContent = String(finding.severity || "low").toUpperCase();
+    severityTd.appendChild(badge);
+
+    row.appendChild(severityTd);
+    row.appendChild(cell(finding.source_library || "unknown"));
+    row.appendChild(cell(finding.resource || `${finding.resource_type}.${finding.resource_name}`));
+    row.appendChild(cell(finding.category || "n/a"));
+    row.appendChild(cell(finding.issue || ""));
+    row.appendChild(cell(finding.recommendation || ""));
+
+    securityFindingsBody.appendChild(row);
+  }
+}
+
+function scoreBand(score) {
+  if (score >= 80) return "good";
+  if (score >= 60) return "warn";
+  return "risk";
+}
+
 function renderTable(resources, filterText) {
   const query = (filterText || "").trim().toLowerCase();
   const filtered = !query
@@ -311,7 +388,7 @@ function renderTable(resources, filterText) {
   if (!filtered.length) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 4;
+    cell.colSpan = 5;
     cell.textContent = "No matching resources.";
     row.appendChild(cell);
     tableBody.appendChild(row);
@@ -323,6 +400,7 @@ function renderTable(resources, filterText) {
     row.appendChild(cell(resource.resource_type));
     row.appendChild(cell(resource.resource_name));
     row.appendChild(cell(resource.file));
+    row.appendChild(suggestionCell(resource));
 
     const configTd = document.createElement("td");
     const details = document.createElement("details");
@@ -339,6 +417,184 @@ function renderTable(resources, filterText) {
 
     tableBody.appendChild(row);
   }
+}
+
+function suggestionCell(resource) {
+  const td = document.createElement("td");
+  const resourceKey = `${resource.resource_type}.${resource.resource_name}`;
+  const hasSecurityLoaded = Boolean(state.security);
+  const findingsByResource = state.security?.findings_by_resource || {};
+  const findings = findingsByResource[resourceKey] || [];
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "inline-action";
+  if (findings.length) {
+    button.textContent = `Show suggestions (${findings.length})`;
+  } else if (hasSecurityLoaded) {
+    button.textContent = "No suggestions";
+    button.disabled = true;
+  } else {
+    button.textContent = "Analyze suggestions";
+  }
+  button.addEventListener("click", async () => {
+    try {
+      await ensureSecurityAnalysis();
+      renderSecurity(state.security);
+      renderTable(state.resources, filterInput.value);
+    } catch (error) {
+      setStatus(`Error: ${error.message}`, true);
+    }
+  });
+  td.appendChild(button);
+
+  if (findings.length) {
+    const details = document.createElement("details");
+    details.className = "suggestion-details";
+    const summary = document.createElement("summary");
+    summary.textContent = "View";
+    details.appendChild(summary);
+
+    for (const finding of findings) {
+      const block = document.createElement("div");
+      block.className = "suggestion-item";
+
+      const sev = document.createElement("span");
+      sev.className = `sev-badge sev-${finding.severity || "low"}`;
+      sev.textContent = String(finding.severity || "low").toUpperCase();
+      block.appendChild(sev);
+
+      const issue = document.createElement("p");
+      issue.className = "suggestion-line";
+      issue.textContent = finding.issue || "";
+      block.appendChild(issue);
+
+      const source = document.createElement("p");
+      source.className = "suggestion-line suggestion-source";
+      source.textContent = `Source: ${finding.source_library || "unknown"} (${finding.rule_id || "rule"})`;
+      block.appendChild(source);
+
+      const rec = document.createElement("p");
+      rec.className = "suggestion-line suggestion-recommendation";
+      rec.textContent = finding.recommendation || "";
+      block.appendChild(rec);
+
+      details.appendChild(block);
+    }
+
+    td.appendChild(details);
+  }
+
+  return td;
+}
+
+async function ensureSecurityAnalysis() {
+  if (state.security || !state.resources.length) {
+    return;
+  }
+
+  const selected = fileInput.files?.[0];
+  if (selected && state.mode === "file" && selected.name.endsWith(".tf")) {
+    setStatus("Generating security suggestions...");
+    const formData = new FormData();
+    formData.append("tf_file", selected);
+    const response = await fetch("/security/file", {
+      method: "POST",
+      body: formData,
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      const message = payload?.detail || "Failed to generate security suggestions.";
+      throw new Error(message);
+    }
+    const normalized = normalizeAnalyzePayload(payload);
+    state.resources = normalized.analyze.resources || state.resources;
+    state.security = normalized.security;
+    setStatus(`Done. Security findings: ${state.security?.findings_count || 0}.`);
+    return;
+  }
+
+  if (selected && state.mode === "folder" && selected.name.endsWith(".zip")) {
+    setStatus("Generating security suggestions...");
+    const formData = new FormData();
+    formData.append("tf_folder_zip", selected);
+    const response = await fetch("/security/folder", {
+      method: "POST",
+      body: formData,
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      const message = payload?.detail || "Failed to generate security suggestions.";
+      throw new Error(message);
+    }
+    const normalized = normalizeAnalyzePayload(payload);
+    state.resources = normalized.analyze.resources || state.resources;
+    state.security = normalized.security;
+    setStatus(`Done. Security findings: ${state.security?.findings_count || 0}.`);
+    return;
+  }
+
+  setStatus("Generating security suggestions...");
+  const response = await fetch("/security/resources", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      resources: state.resources,
+      scan_dir: inferScanDirFromResources(state.resources),
+    }),
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    const message = payload?.detail || "Failed to generate security suggestions.";
+    throw new Error(message);
+  }
+
+  state.security = payload;
+  setStatus(
+    `Done. Security findings: ${payload.findings_count || 0}.`
+  );
+}
+
+function inferScanDirFromResources(resources) {
+  if (!Array.isArray(resources) || !resources.length) {
+    return null;
+  }
+
+  const windowsAbsolute = /^[a-zA-Z]:\\/;
+  const unixAbsolute = /^\//;
+  const files = resources.map((r) => String(r.file || ""));
+  if (!files.every((f) => windowsAbsolute.test(f) || unixAbsolute.test(f))) {
+    return null;
+  }
+
+  const normalize = (file) => file.replace(/\\/g, "/");
+  const dirs = files.map((f) => {
+    const n = normalize(f);
+    const idx = n.lastIndexOf("/");
+    return idx > 0 ? n.slice(0, idx) : n;
+  });
+  if (!dirs.length) return null;
+
+  const split = (d) => d.split("/").filter(Boolean);
+  let common = split(dirs[0]);
+  for (const dir of dirs.slice(1)) {
+    const parts = split(dir);
+    const max = Math.min(common.length, parts.length);
+    let i = 0;
+    while (i < max && common[i].toLowerCase() === parts[i].toLowerCase()) {
+      i += 1;
+    }
+    common = common.slice(0, i);
+    if (!common.length) break;
+  }
+
+  if (!common.length) return null;
+  const first = normalize(files[0]);
+  const isWindows = /^[a-zA-Z]:\//.test(first);
+  const root = isWindows ? `${first.slice(0, 2)}/` : "/";
+  const merged = `${root}${common.join("/")}`;
+  return isWindows ? merged.replace(/\//g, "\\") : merged;
 }
 
 function cell(value) {

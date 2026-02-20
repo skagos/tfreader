@@ -27,6 +27,9 @@
         <form id="analyze-form" class="upload-form">
           <label id="file-label" class="field-label" for="iac-input">Upload .tf file</label>
           <input id="iac-input" name="iac" type="file" accept=".tf,.zip" required />
+          <div class="check-row">
+            <label><input id="analyze-security" type="checkbox" /> Include security analysis</label>
+          </div>
           <button id="analyze-btn" type="submit">Analyze Resources</button>
         </form>
 
@@ -69,6 +72,7 @@
             <label><input id="non-interactive" type="checkbox" checked /> Non-interactive</label>
             <label><input id="hcl-only" type="checkbox" checked /> HCL only</label>
             <label><input id="device-code" type="checkbox" /> Use device code login</label>
+            <label><input id="export-security" type="checkbox" /> Include security analysis</label>
           </div>
           <button id="export-btn" type="submit">Run Azure Export</button>
         </form>
@@ -96,6 +100,29 @@
         <div id="diagram" class="diagram-canvas"></div>
       </section>
 
+      <section class="panel security-panel" id="security-panel" hidden>
+        <div class="table-head">
+          <h2>Security Findings</h2>
+          <div id="security-score" class="security-score">Score: 100</div>
+        </div>
+        <p id="security-summary" class="hint"></p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Severity</th>
+                <th>Library</th>
+                <th>Resource</th>
+                <th>Category</th>
+                <th>Issue</th>
+                <th>Recommendation</th>
+              </tr>
+            </thead>
+            <tbody id="security-findings-body"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section class="panel table-panel" id="table-panel" hidden>
         <div class="table-head">
           <h2>Resource Details</h2>
@@ -108,6 +135,7 @@
                 <th>Type</th>
                 <th>Name</th>
                 <th>File</th>
+                <th>Suggestions</th>
                 <th>Config</th>
               </tr>
             </thead>

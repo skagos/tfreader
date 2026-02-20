@@ -3,14 +3,25 @@
 from pathlib import Path
 import shutil
 import subprocess
+import tempfile
 import time
 from datetime import datetime, timezone
+from zipfile import ZipFile
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.schemas import AnalyzeResponse, AzureExportRequest, AzureExportResponse, ResourceRecord
+from app.schemas import (
+    AnalyzeResponse,
+    AnalyzeWithSecurityResponse,
+    SecurityAnalysisResponse,
+    SecurityAnalyzeResourcesRequest,
+    AzureExportRequest,
+    AzureExportResponse,
+    ResourceRecord,
+)
+from app.security_analyzer import SecurityAnalyzer
 from app.terraform_parser import parse_tf_content, parse_tf_directory, parse_tf_from_zip
 
 app = FastAPI(
@@ -36,6 +47,15 @@ def _build_response(resources: list[ResourceRecord]) -> AnalyzeResponse:
         resource_count=len(resources),
         resources=resources,
     )
+
+
+def _build_security_response(
+    resources: list[ResourceRecord],
+    scan_dir: str | Path | None = None,
+) -> AnalyzeWithSecurityResponse:
+    analyze = _build_response(resources)
+    security = SecurityAnalyzer().analyze(resources, scan_dir=scan_dir)
+    return AnalyzeWithSecurityResponse(analyze=analyze, security=security)
 
 
 def _utc_now_iso() -> str:
@@ -229,6 +249,79 @@ def analyze_local_path(path: str = Form(...)) -> AnalyzeResponse:
     return _build_response(resources)
 
 
+@app.post("/security/file", response_model=AnalyzeWithSecurityResponse)
+async def security_tf_file(
+    tf_file: UploadFile = File(..., description="A single Terraform file ending in .tf"),
+) -> AnalyzeWithSecurityResponse:
+    if not tf_file.filename or not tf_file.filename.endswith(".tf"):
+        raise HTTPException(status_code=400, detail="File must end with .tf")
+
+    try:
+        content = (await tf_file.read()).decode("utf-8")
+        resources = parse_tf_content(content, tf_file.filename)
+    except UnicodeDecodeError as exc:
+        raise HTTPException(status_code=400, detail="File must be UTF-8 encoded") from exc
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"Failed to parse Terraform file: {exc}") from exc
+
+    with tempfile.TemporaryDirectory(prefix="tfreader-security-file-") as tmp:
+        file_name = tf_file.filename or "uploaded.tf"
+        target = Path(tmp) / file_name
+        target.write_text(content, encoding="utf-8")
+        return _build_security_response(resources, scan_dir=tmp)
+
+
+@app.post("/security/folder", response_model=AnalyzeWithSecurityResponse)
+async def security_tf_folder(
+    tf_folder_zip: UploadFile = File(
+        ...,
+        description="A .zip file that contains one or more Terraform .tf files",
+    ),
+) -> AnalyzeWithSecurityResponse:
+    if not tf_folder_zip.filename or not tf_folder_zip.filename.endswith(".zip"):
+        raise HTTPException(status_code=400, detail="Folder input must be a .zip file")
+
+    try:
+        payload = await tf_folder_zip.read()
+        resources = parse_tf_from_zip(payload)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"Failed to parse zipped folder: {exc}") from exc
+
+    with tempfile.TemporaryDirectory(prefix="tfreader-security-zip-") as tmp:
+        zip_path = Path(tmp) / "input.zip"
+        zip_path.write_bytes(payload)
+        with ZipFile(zip_path, "r") as archive:
+            archive.extractall(tmp)
+        return _build_security_response(resources, scan_dir=tmp)
+
+
+@app.post("/security/local-path", response_model=AnalyzeWithSecurityResponse)
+def security_local_path(path: str = Form(...)) -> AnalyzeWithSecurityResponse:
+    target = Path(path)
+    if not target.exists():
+        raise HTTPException(status_code=404, detail=f"Path not found: {path}")
+
+    try:
+        if target.is_file():
+            if target.suffix != ".tf":
+                raise HTTPException(status_code=400, detail="Local file input must end in .tf")
+            resources = parse_tf_content(target.read_text(encoding="utf-8"), str(target))
+        else:
+            resources = parse_tf_directory(target)
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"Failed to parse local path: {exc}") from exc
+
+    scan_dir = target if target.is_dir() else target.parent
+    return _build_security_response(resources, scan_dir=scan_dir)
+
+
+@app.post("/security/resources", response_model=SecurityAnalysisResponse)
+def security_from_resources(request: SecurityAnalyzeResourcesRequest) -> SecurityAnalysisResponse:
+    return SecurityAnalyzer().analyze(request.resources, scan_dir=request.scan_dir)
+
+
 @app.post("/export/azure", response_model=AzureExportResponse)
 def export_azure(request: AzureExportRequest) -> AzureExportResponse:
     print(
@@ -334,6 +427,7 @@ def export_azure(request: AzureExportRequest) -> AzureExportResponse:
     resources = parse_tf_directory(output_dir)
     print(f"[EXPORT] Parsing completed. Parsed resource count: {len(resources)}")
     analyze = _build_response(resources)
+    security = SecurityAnalyzer().analyze(resources, scan_dir=output_dir) if request.include_security else None
 
     return AzureExportResponse(
         steps=steps,
@@ -345,4 +439,5 @@ def export_azure(request: AzureExportRequest) -> AzureExportResponse:
         export_stdout=export_stdout,
         export_stderr=export_stderr,
         analyze=analyze,
+        security=security,
     )

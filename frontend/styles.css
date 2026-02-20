@@ -285,6 +285,103 @@ pre {
   background: #450a0a;
 }
 
+.security-score {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 700;
+  background: #fff;
+}
+
+.security-score.score-good {
+  color: #166534;
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.security-score.score-warn {
+  color: #92400e;
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.security-score.score-risk {
+  color: #991b1b;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.sev-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.sev-critical {
+  color: #ffffff;
+  background: #991b1b;
+}
+
+.sev-high {
+  color: #ffffff;
+  background: #b45309;
+}
+
+.sev-medium {
+  color: #1f2937;
+  background: #fde68a;
+}
+
+.sev-low {
+  color: #0f172a;
+  background: #c7d2fe;
+}
+
+.inline-action {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.inline-action:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.suggestion-details {
+  margin-top: 8px;
+}
+
+.suggestion-item {
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px;
+  background: #f8fbff;
+}
+
+.suggestion-line {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+}
+
+.suggestion-recommendation {
+  color: #334155;
+}
+
+.suggestion-source {
+  color: #0f766e;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
 @media (max-width: 720px) {
   .shell {
     padding: 22px 12px 50px;

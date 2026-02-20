@@ -18,6 +18,48 @@ class AnalyzeResponse(BaseModel):
     resources: list[ResourceRecord]
 
 
+class SecurityFinding(BaseModel):
+    resource: str = Field(..., description="Canonical resource id in <type>.<name> format.")
+    resource_type: str = Field(..., description="Terraform resource type.")
+    resource_name: str = Field(..., description="Terraform resource name.")
+    file: str = Field(..., description="Terraform file where the resource was found.")
+    severity: Literal["low", "medium", "high", "critical"]
+    category: Literal["identity", "network", "storage", "compute", "monitoring", "general"]
+    source_library: Literal["checkov", "tfsec", "terrascan"]
+    issue: str
+    recommendation: str
+    rule_id: str
+    compliance: list[str] = Field(
+        default_factory=list,
+        description="Optional compliance mappings such as CIS/NIST/ISO controls.",
+    )
+
+
+class SecurityScore(BaseModel):
+    score: int = Field(..., ge=0, le=100)
+    by_severity: dict[str, int] = Field(default_factory=dict)
+
+
+class SecurityAnalysisResponse(BaseModel):
+    findings_count: int
+    findings: list[SecurityFinding] = Field(default_factory=list)
+    findings_by_resource: dict[str, list[SecurityFinding]] = Field(default_factory=dict)
+    score: SecurityScore
+    scanner_status: dict[str, str] = Field(default_factory=dict)
+    scanner_errors: list[str] = Field(default_factory=list)
+    summary: str
+
+
+class AnalyzeWithSecurityResponse(BaseModel):
+    analyze: AnalyzeResponse
+    security: SecurityAnalysisResponse
+
+
+class SecurityAnalyzeResourcesRequest(BaseModel):
+    resources: list[ResourceRecord] = Field(default_factory=list)
+    scan_dir: str | None = None
+
+
 class AzureExportRequest(BaseModel):
     exporter: str | None = Field(
         default=None,
@@ -49,6 +91,10 @@ class AzureExportRequest(BaseModel):
         default=False,
         description="Use device code flow for az login.",
     )
+    include_security: bool = Field(
+        default=False,
+        description="Run security analysis on parsed resources and include findings in response.",
+    )
 
 
 class AzureExportResponse(BaseModel):
@@ -64,3 +110,4 @@ class AzureExportResponse(BaseModel):
     export_stdout: str
     export_stderr: str
     analyze: AnalyzeResponse
+    security: SecurityAnalysisResponse | None = None
