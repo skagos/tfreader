@@ -175,6 +175,12 @@ def _resolve_output_dir(raw_dir: str) -> Path:
     return resolved
 
 
+def _write_security_report(output_dir: Path, security: SecurityAnalysisResponse) -> Path:
+    report_path = output_dir / "SECURITY_FINDINGS_REPORT.md"
+    report_path.write_text(security.report_markdown or "", encoding="utf-8")
+    return report_path
+
+
 @app.get("/")
 def index() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "index.html")
@@ -428,6 +434,9 @@ def export_azure(request: AzureExportRequest) -> AzureExportResponse:
     print(f"[EXPORT] Parsing completed. Parsed resource count: {len(resources)}")
     analyze = _build_response(resources)
     security = SecurityAnalyzer().analyze(resources, scan_dir=output_dir) if request.include_security else None
+    if security is not None:
+        report_path = _write_security_report(output_dir, security)
+        security.report_file = str(report_path)
 
     return AzureExportResponse(
         steps=steps,

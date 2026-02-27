@@ -48,6 +48,14 @@ class SecurityAnalysisResponse(BaseModel):
     scanner_status: dict[str, str] = Field(default_factory=dict)
     scanner_errors: list[str] = Field(default_factory=list)
     summary: str
+    report_markdown: str = Field(
+        default="",
+        description="Human-readable Markdown report with risk and remediation guidance.",
+    )
+    report_file: str | None = Field(
+        default=None,
+        description="Optional path to the exported report document.",
+    )
 
 
 class AnalyzeWithSecurityResponse(BaseModel):

@@ -18,6 +18,19 @@ _SEVERITY_WEIGHT = {
 }
 
 _SCANNERS = ("checkov", "tfsec", "terrascan")
+_SEVERITY_ORDER = ("critical", "high", "medium", "low")
+_SEVERITY_PRIORITY = {
+    "critical": "P0 - Immediate",
+    "high": "P1 - This sprint",
+    "medium": "P2 - Planned",
+    "low": "P3 - Backlog",
+}
+_SEVERITY_DANGER = {
+    "critical": "High likelihood of compromise, data exposure, or major service disruption.",
+    "high": "Material risk of unauthorized access, data impact, or outage under realistic conditions.",
+    "medium": "Moderate risk that can increase blast radius when combined with other weaknesses.",
+    "low": "Limited immediate impact, but weakens long-term security posture if left unresolved.",
+}
 
 
 def _normalize_severity(value: Any) -> str:
@@ -166,6 +179,7 @@ class SecurityAnalyzer:
         )
         if scanner_errors:
             summary = f"{summary} Scanner notes: {' | '.join(scanner_errors)}"
+        report_markdown = self._build_report(findings, severity_counts, summary)
 
         return SecurityAnalysisResponse(
             findings_count=len(findings),
@@ -175,6 +189,7 @@ class SecurityAnalyzer:
             scanner_status=scanner_status,
             scanner_errors=scanner_errors,
             summary=summary,
+            report_markdown=report_markdown,
         )
 
     def _calculate_score(self, severity_counts: dict[str, int]) -> int:
@@ -355,3 +370,61 @@ class SecurityAnalyzer:
         status = "ok" if not stderr else "ok"
         return _ScannerResult(findings=findings, status=status)
 
+    def _build_report(
+        self,
+        findings: list[SecurityFinding],
+        severity_counts: dict[str, int],
+        summary: str,
+    ) -> str:
+        lines: list[str] = []
+        lines.append("# Terraform Security Findings Report")
+        lines.append("")
+        lines.append("## Executive Summary")
+        lines.append(f"- {summary}")
+        lines.append(
+            "- Findings by severity: "
+            + ", ".join(f"{sev}={severity_counts.get(sev, 0)}" for sev in _SEVERITY_ORDER)
+        )
+        lines.append("")
+
+        if not findings:
+            lines.append("## Details")
+            lines.append("No findings were detected.")
+            lines.append("")
+            return "\n".join(lines)
+
+        lines.append("## Remediation Priorities")
+        for sev in _SEVERITY_ORDER:
+            count = severity_counts.get(sev, 0)
+            if count:
+                lines.append(f"- {sev.title()} ({count}): {_SEVERITY_PRIORITY[sev]}")
+        lines.append("")
+        lines.append("## Findings")
+        lines.append("")
+
+        for index, finding in enumerate(findings, start=1):
+            lines.append(f"### {index}. {finding.rule_id} ({finding.severity.upper()})")
+            lines.append(f"- Resource: `{finding.resource}`")
+            lines.append(f"- Source: `{finding.source_library}`")
+            lines.append(f"- Category: `{finding.category}`")
+            lines.append(f"- File: `{finding.file}`")
+            lines.append(f"- Issue: {finding.issue}")
+            lines.append(f"- Why this matters: {_SEVERITY_DANGER[finding.severity]}")
+            lines.append(f"- Fix priority: {_SEVERITY_PRIORITY[finding.severity]}")
+            lines.append("- Step-by-step remediation:")
+            for step_index, step in enumerate(self._build_remediation_steps(finding.recommendation), start=1):
+                lines.append(f"  {step_index}. {step}")
+            lines.append("")
+
+        return "\n".join(lines)
+
+    def _build_remediation_steps(self, recommendation: str) -> list[str]:
+        raw_parts = [part.strip(" -\t") for part in recommendation.splitlines() if part.strip()]
+        parts = raw_parts if raw_parts else [recommendation.strip() or "Apply the policy-compliant configuration."]
+        if len(parts) == 1:
+            return [
+                f"Locate the resource and rule violation in Terraform code. Guidance: {parts[0]}",
+                "Update resource configuration to meet policy requirements.",
+                "Run `terraform plan` and your security scan tools again to verify remediation.",
+            ]
+        return parts

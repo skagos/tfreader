@@ -20,6 +20,7 @@ const typeCountEl = document.getElementById("type-count");
 const chipsEl = document.getElementById("chips");
 const diagramEl = document.getElementById("diagram");
 const securityScoreEl = document.getElementById("security-score");
+const exportSecurityReportBtn = document.getElementById("export-security-report-btn");
 const securitySummaryEl = document.getElementById("security-summary");
 const securityFindingsBody = document.getElementById("security-findings-body");
 const tableBody = document.getElementById("resource-table-body");
@@ -36,6 +37,8 @@ const nonInteractiveCheckbox = document.getElementById("non-interactive");
 const hclOnlyCheckbox = document.getElementById("hcl-only");
 const deviceCodeCheckbox = document.getElementById("device-code");
 const exportSecurityCheckbox = document.getElementById("export-security");
+
+exportSecurityReportBtn.addEventListener("click", exportSecurityReport);
 
 for (const btn of modeButtons) {
   btn.addEventListener("click", () => setMode(btn.dataset.mode));
@@ -328,10 +331,12 @@ function renderSecurity(security) {
 
   if (!security) {
     securityPanel.hidden = true;
+    exportSecurityReportBtn.hidden = true;
     return;
   }
 
   securityPanel.hidden = false;
+  exportSecurityReportBtn.hidden = !security.report_markdown;
   const score = Number.isFinite(security.score?.score) ? security.score.score : 100;
   securityScoreEl.textContent = `Score: ${score}`;
   securityScoreEl.className = `security-score score-${scoreBand(score)}`;
@@ -366,6 +371,28 @@ function renderSecurity(security) {
 
     securityFindingsBody.appendChild(row);
   }
+}
+
+function exportSecurityReport() {
+  const markdown = state.security?.report_markdown;
+  if (!markdown) {
+    setStatus("No security report available to export.", true);
+    return;
+  }
+
+  const fromServerPath = state.security?.report_file
+    ? String(state.security.report_file).split(/[\\/]/).pop()
+    : "";
+  const filename = fromServerPath || "SECURITY_FINDINGS_REPORT.md";
+  const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 function scoreBand(score) {

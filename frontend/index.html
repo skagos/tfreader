@@ -103,7 +103,12 @@
       <section class="panel security-panel" id="security-panel" hidden>
         <div class="table-head">
           <h2>Security Findings</h2>
-          <div id="security-score" class="security-score">Score: 100</div>
+          <div class="security-actions">
+            <button id="export-security-report-btn" type="button" class="inline-action" hidden>
+              Export Security Findings
+            </button>
+            <div id="security-score" class="security-score">Score: 100</div>
+          </div>
         </div>
         <p id="security-summary" class="hint"></p>
         <div class="table-wrap">

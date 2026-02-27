@@ -1,13 +1,13 @@
-﻿:root {
-  --bg-0: #f3f6ff;
-  --bg-1: #deebff;
-  --text: #14213d;
-  --muted: #4a5568;
-  --line: #c6d4ef;
-  --panel: #ffffffd9;
-  --accent: #d97706;
-  --accent-2: #0f766e;
-  --danger: #b91c1c;
+:root {
+  --bg-0: #03050a;
+  --bg-1: #0a1120;
+  --text: #e8f3ff;
+  --muted: #8ea3c3;
+  --line: #20314d;
+  --panel: #091120c9;
+  --accent: #00d4ff;
+  --accent-2: #00ffb2;
+  --danger: #ff5f79;
 }
 
 * {
@@ -16,19 +16,23 @@
 
 body {
   margin: 0;
-  font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
+  font-family: "Rajdhani", "Space Grotesk", "Segoe UI", sans-serif;
   color: var(--text);
-  background: radial-gradient(circle at 10% 10%, var(--bg-1), transparent 35%),
-    linear-gradient(145deg, #fdfcf9 0%, var(--bg-0) 45%, #f2f8f7 100%);
+  background:
+    radial-gradient(circle at 15% -5%, #104a8e66, transparent 42%),
+    radial-gradient(circle at 90% 5%, #0a6f5f66, transparent 35%),
+    linear-gradient(155deg, var(--bg-0) 0%, #02040a 50%, #020308 100%);
   min-height: 100vh;
 }
 
 .bg-grid {
   position: fixed;
   inset: 0;
-  background-image: linear-gradient(to right, #ffffff85 1px, transparent 1px),
-    linear-gradient(to bottom, #ffffff85 1px, transparent 1px);
-  background-size: 28px 28px;
+  background-image:
+    linear-gradient(to right, #11213a 1px, transparent 1px),
+    linear-gradient(to bottom, #11213a 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.55;
   pointer-events: none;
 }
 
@@ -44,15 +48,17 @@ body {
 .hero h1 {
   margin: 8px 0;
   font-size: clamp(1.8rem, 2.8vw, 2.9rem);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: 0 0 16px #00d4ff55;
 }
 
 .eyebrow {
   margin: 0;
   color: var(--accent-2);
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.16em;
   font-size: 0.82rem;
 }
 
@@ -66,8 +72,10 @@ body {
   border-radius: 20px;
   padding: 18px;
   background: var(--panel);
-  backdrop-filter: blur(4px);
-  box-shadow: 0 10px 30px #7c8ead22;
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 12px 32px #00000099,
+    inset 0 0 0 1px #1a2b4380;
 }
 
 .mode-toggle {
@@ -75,7 +83,7 @@ body {
   border-radius: 12px;
   border: 1px solid var(--line);
   padding: 4px;
-  background: #ffffffb3;
+  background: #081121;
 }
 
 .mode-btn {
@@ -89,8 +97,9 @@ body {
 }
 
 .mode-btn.active {
-  background: #0f766e;
-  color: #fff;
+  background: linear-gradient(110deg, #0b1f36, #114372);
+  color: #dff6ff;
+  box-shadow: inset 0 0 0 1px #2f8dc7;
 }
 
 .upload-form {
@@ -121,13 +130,14 @@ select {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 10px;
-  background: #fff;
+  background: #070f1d;
+  color: var(--text);
 }
 
 select {
   appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, #64748b 50%),
-    linear-gradient(135deg, #64748b 50%, transparent 50%);
+  background-image: linear-gradient(45deg, transparent 50%, #88a3c8 50%),
+    linear-gradient(135deg, #88a3c8 50%, transparent 50%);
   background-position: calc(100% - 18px) 18px, calc(100% - 12px) 18px;
   background-size: 6px 6px, 6px 6px;
   background-repeat: no-repeat;
@@ -154,9 +164,10 @@ button[type="submit"] {
   padding: 10px 16px;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #fff;
-  background: linear-gradient(100deg, var(--accent), #ef4444);
+  color: #041421;
+  background: linear-gradient(100deg, var(--accent), #57ffc6);
   cursor: pointer;
+  box-shadow: 0 0 20px #00d4ff55;
 }
 
 .status {
@@ -179,7 +190,7 @@ button[type="submit"] {
   border-radius: 12px;
   padding: 10px 12px;
   min-width: 150px;
-  background: #fff;
+  background: #060d1a;
 }
 
 .stat-label {
@@ -196,7 +207,7 @@ button[type="submit"] {
 }
 
 .chips span {
-  background: #e7edf8;
+  background: #0a1425;
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 4px 10px;
@@ -212,7 +223,7 @@ button[type="submit"] {
   overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: #fff;
+  background: #050a14;
 }
 
 .diagram-canvas svg {
@@ -226,6 +237,12 @@ button[type="submit"] {
   align-items: center;
 }
 
+.security-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .table-wrap {
   margin-top: 8px;
   overflow-x: auto;
@@ -235,7 +252,7 @@ table {
   border-collapse: collapse;
   width: 100%;
   min-width: 920px;
-  background: #fff;
+  background: #050a14;
 }
 
 th,
@@ -262,18 +279,19 @@ pre {
   margin: 8px 0 0;
   padding: 8px;
   border-radius: 8px;
-  background: #f8fafc;
+  background: #0a1322;
   border: 1px solid var(--line);
   overflow-x: auto;
   font-size: 0.78rem;
+  color: #d4e7ff;
 }
 
 .export-log {
   margin-top: 12px;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #050d1a;
+  color: #cae6ff;
   border-radius: 12px;
-  border: 1px solid #0b1220;
+  border: 1px solid #16243a;
   padding: 12px;
   font-size: 0.78rem;
   white-space: pre-wrap;
@@ -290,25 +308,25 @@ pre {
   border-radius: 999px;
   padding: 6px 12px;
   font-weight: 700;
-  background: #fff;
+  background: #07111f;
 }
 
 .security-score.score-good {
-  color: #166534;
-  border-color: #86efac;
-  background: #f0fdf4;
+  color: #7dffd1;
+  border-color: #1f8f68;
+  background: #06251b;
 }
 
 .security-score.score-warn {
-  color: #92400e;
-  border-color: #fcd34d;
-  background: #fffbeb;
+  color: #ffd27f;
+  border-color: #a4641a;
+  background: #2a1b08;
 }
 
 .security-score.score-risk {
-  color: #991b1b;
-  border-color: #fca5a5;
-  background: #fef2f2;
+  color: #ff9cab;
+  border-color: #8d2a3d;
+  background: #2a0a14;
 }
 
 .sev-badge {
@@ -322,32 +340,32 @@ pre {
 
 .sev-critical {
   color: #ffffff;
-  background: #991b1b;
+  background: #b42343;
 }
 
 .sev-high {
   color: #ffffff;
-  background: #b45309;
+  background: #b46a0f;
 }
 
 .sev-medium {
-  color: #1f2937;
-  background: #fde68a;
+  color: #0b1a2d;
+  background: #f7d36d;
 }
 
 .sev-low {
-  color: #0f172a;
-  background: #c7d2fe;
+  color: #052035;
+  background: #7dd9ff;
 }
 
 .inline-action {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 6px 10px;
-  background: #fff;
+  background: #0a1425;
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--text);
+  color: #b8e7ff;
   cursor: pointer;
 }
 
@@ -365,7 +383,7 @@ pre {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 8px;
-  background: #f8fbff;
+  background: #0a1322;
 }
 
 .suggestion-line {
@@ -374,11 +392,11 @@ pre {
 }
 
 .suggestion-recommendation {
-  color: #334155;
+  color: #b1c6e0;
 }
 
 .suggestion-source {
-  color: #0f766e;
+  color: #56e8ff;
   font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 
