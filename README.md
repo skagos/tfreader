@@ -14,6 +14,77 @@ uvicorn app.main:app --reload
 Web UI: `http://127.0.0.1:8000/`
 Swagger UI: `http://127.0.0.1:8000/docs`
 
+## Install As CLI Tool (No Clone Workflow)
+
+Recommended: use `pipx` so the command is globally available.
+
+Install `pipx` once:
+
+```bash
+python -m pip install --user pipx
+python -m pipx ensurepath
+```
+
+Install from GitHub:
+
+```bash
+pipx install git+https://github.com/<your-org>/<your-repo>.git
+```
+
+Then run:
+
+```bash
+tfreader scan ./infra --fail-on high
+```
+
+If publishing to PyPI later, users can install with:
+
+```bash
+pipx install tfreader-iac
+```
+
+## CLI (CI/CD Security Gate)
+
+You can run security analysis from CLI so pipelines can block merges/deploys.
+
+Command:
+
+```bash
+python -m app.cli scan <path> --fail-on high --out-json artifacts/security.json --out-md artifacts/security.md
+```
+
+Examples:
+
+```bash
+python -m app.cli scan ./exports/azure-terraform-export --fail-on critical
+python -m app.cli scan ./exports/azure-terraform-export --fail-on high --out-md SECURITY_FINDINGS_REPORT.md
+```
+
+Installed command examples:
+
+```bash
+tfreader scan ./exports/azure-terraform-export --fail-on critical
+tfreader scan ./exports/azure-terraform-export --fail-on high --out-json artifacts/security.json --out-md artifacts/security.md
+```
+
+Exit codes:
+- `0`: scan finished, no findings at/above threshold
+- `1`: policy gate failed (findings at/above `--fail-on`)
+- `2`: invalid input/usage (e.g. bad path)
+- `3`: runtime/scanner failure
+
+Recommended rollout:
+- start with `--fail-on critical`
+- move to `--fail-on high` after initial cleanup
+- enforce as required status check in PR protection
+
+For local development of the package command:
+
+```bash
+pip install -e .
+tfreader --help
+```
+
 ## Run With Docker
 
 Build and start:
@@ -104,3 +175,51 @@ curl -X POST "http://127.0.0.1:8000/analyze/folder" \
 - Advisor phase:
   - default mode is rules-based (`ADVISOR_MODE=rules`)
   - optional future AI path is available via `ADVISOR_MODE=llm` (currently stubbed until provider integration is added)
+
+## GitHub Actions Example
+
+```yaml
+name: iac-security-gate
+on: [pull_request]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m app.cli scan ./exports/azure-terraform-export --fail-on high --out-json artifacts/security.json --out-md artifacts/security.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tfreader-security
+          path: artifacts/
+```
+
+## Azure DevOps Example
+
+```yaml
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- checkout: self
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: "3.12"
+- script: pip install -r requirements.txt
+  displayName: Install dependencies
+- script: python -m app.cli scan ./exports/azure-terraform-export --fail-on high --out-json artifacts/security.json --out-md artifacts/security.md
+  displayName: Run tfreader security gate
+- task: PublishBuildArtifacts@1
+  condition: always()
+  inputs:
+    PathtoPublish: artifacts
+    ArtifactName: tfreader-security
+```
