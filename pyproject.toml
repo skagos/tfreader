@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tfreader-iac"
+version = "0.1.0"
+description = "Terraform IaC parser and security analyzer with API and CLI."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "tfreader contributors" }]
+dependencies = [
+  "fastapi==0.116.1",
+  "uvicorn[standard]==0.35.0",
+  "python-multipart==0.0.20",
+  "python-hcl2==5.1.1",
+]
+
+[project.scripts]
+tfreader = "app.cli:cli_entrypoint"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["app*"]
