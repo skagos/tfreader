@@ -49,18 +49,7 @@ def _build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     scan = subparsers.add_parser("scan", help="Scan a Terraform path and evaluate findings.")
-    scan.add_argument(
-        "context_or_path",
-        help=(
-            "Optional context label or Terraform path. "
-            "Examples: 'scan ./infra' or 'scan putana ./infra'."
-        ),
-    )
-    scan.add_argument(
-        "path",
-        nargs="?",
-        help="Terraform path when a context label is provided first.",
-    )
+    scan.add_argument("path", help="Path to Terraform directory, .tf file, or .zip archive.")
     scan.add_argument(
         "--fail-on",
         choices=("none", "low", "medium", "high", "critical"),
@@ -73,11 +62,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _run_scan(args: argparse.Namespace) -> int:
-    # Backward compatible forms:
-    # 1) tfreader scan ./infra
-    # 2) tfreader scan putana ./infra
-    target_arg = args.path if args.path else args.context_or_path
-    target = Path(target_arg).expanduser().resolve()
+    target = Path(args.path).expanduser().resolve()
     if not target.exists():
         print(f"[ERROR] Path not found: {target}", file=sys.stderr)
         return 2
