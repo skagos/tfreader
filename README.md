@@ -28,13 +28,13 @@ python -m pipx ensurepath
 Install from GitHub:
 
 ```bash
-pipx install git+https://github.com/<your-org>/<your-repo>.git
+pipx install git+https://github.com/skagos/tfreader.git
 ```
 
 Then run:
 
 ```bash
-tfreader scan ./infra --fail-on high
+tfreader scan putana ./infra --fail-on high
 ```
 
 If publishing to PyPI later, users can install with:
@@ -50,21 +50,21 @@ You can run security analysis from CLI so pipelines can block merges/deploys.
 Command:
 
 ```bash
-python -m app.cli scan <path> --fail-on high --out-json artifacts/security.json --out-md artifacts/security.md
+python -m app.cli scan putana <path> --fail-on high --out-json artifacts/security.json --out-md artifacts/security.md
 ```
 
 Examples:
 
 ```bash
-python -m app.cli scan ./exports/azure-terraform-export --fail-on critical
-python -m app.cli scan ./exports/azure-terraform-export --fail-on high --out-md SECURITY_FINDINGS_REPORT.md
+python -m app.cli scan putana ./exports/azure-terraform-export --fail-on critical
+python -m app.cli scan putana ./exports/azure-terraform-export --fail-on high --out-md SECURITY_FINDINGS_REPORT.md
 ```
 
 Installed command examples:
 
 ```bash
-tfreader scan ./exports/azure-terraform-export --fail-on critical
-tfreader scan ./exports/azure-terraform-export --fail-on high --out-json artifacts/security.json --out-md artifacts/security.md
+tfreader scan putana ./exports/azure-terraform-export --fail-on critical
+tfreader scan putana ./exports/azure-terraform-export --fail-on high --out-json artifacts/security.json --out-md artifacts/security.md
 ```
 
 Exit codes:
@@ -191,7 +191,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python -m app.cli scan ./exports/azure-terraform-export --fail-on high --out-json artifacts/security.json --out-md artifacts/security.md
+      - run: python -m app.cli scan putana ./exports/azure-terraform-export --fail-on high --out-json artifacts/security.json --out-md artifacts/security.md
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -215,7 +215,7 @@ steps:
     versionSpec: "3.12"
 - script: pip install -r requirements.txt
   displayName: Install dependencies
-- script: python -m app.cli scan ./exports/azure-terraform-export --fail-on high --out-json artifacts/security.json --out-md artifacts/security.md
+- script: python -m app.cli scan putana ./exports/azure-terraform-export --fail-on high --out-json artifacts/security.json --out-md artifacts/security.md
   displayName: Run tfreader security gate
 - task: PublishBuildArtifacts@1
   condition: always()
