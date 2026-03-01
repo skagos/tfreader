@@ -73,7 +73,7 @@ def _run_scan(args: argparse.Namespace) -> int:
     except ValueError as exc:
         print(f"[ERROR] {exc}", file=sys.stderr)
         return 2
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc: 
         print(f"[ERROR] Runtime failure: {exc}", file=sys.stderr)
         return 3
 
